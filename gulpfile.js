@@ -37,7 +37,7 @@ gulp.task('tracking', function(){
 gulp.task('concat-js', function(){
     if (!development)
     {
-        listOfJSFiles.splice(0,0, "scripts/prodructionData.js");
+        listOfJSFiles.splice(0,0, "scripts/productionData.js");
     }
     else
     {
