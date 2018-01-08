@@ -1,0 +1,19 @@
+{
+  "name": "vsts-dropplan",
+  "version": "1.0.0",
+  "description": "Sprint Drop Plan is an organizational tool that helps team members to sync their tasks by visualizing work status and dependencies on a sprint-based calendar.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gberman/VSTS-DropPlan.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/gberman/VSTS-DropPlan/issues"
+  },
+  "homepage": "https://github.com/gberman/VSTS-DropPlan#readme"
+}
