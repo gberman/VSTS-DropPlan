@@ -29,13 +29,11 @@ function reportFailure(msg){
 function BuildDropPlan() {
     console.log("Stating. (" + (performance.now() - t0) + " ms.)");
     
-    if (!__DEBUG__){
-        VSS.init({
-            explicitNotifyLoaded: true,
-            usePlatformScripts: false,
-            usePlatformStyles: true
-        });
-    }
+    VSS.init({
+        explicitNotifyLoaded: true,
+        usePlatformScripts: false,
+        usePlatformStyles: true
+    });
     
     VSS.ready(function () {
         VSS.register(VSS.getContribution().id, {});
@@ -44,42 +42,73 @@ function BuildDropPlan() {
     
     console.log("VSS init. (" + (performance.now() - t0) + " ms.)");
     
-    try {
-        var workClient = window.ExtensionData;
-        var promisesList = [
-            workClient.getTeamDaysOff(),
-            workClient.getTeamSettings(),
-            workClient.getCapacities(),
-            workClient.getTeamIteration(),
-            workClient.getTeamFieldValues(),
-            workClient.DataService(),
-            workClient.getBacklogConfigurations()
-        ];
+    VSS.require(["VSS/Service", "TFS/WorkItemTracking/RestClient", "TFS/Work/RestClient", "TFS/WorkItemTracking/Services"],
+        function (VSS_Service, TFS_Wit_WebApi, TFS_Work, TFS_Wit_Services) {
+            try {
+                extVersion = VSS.getExtensionContext().version;
+                
+                console.log("VSS loaded V " + extVersion + " VssSDKRestVersion:" + VSS.VssSDKRestVersion + " VssSDKVersion:" + VSS.VssSDKVersion + ". (" + (performance.now() - t0) + " ms.)");
+                reportProgress("Framework loaded.");
+                
 
-        Promise.all(promisesList).then(function(values){
-            console.log("Team data loaded. (" + (performance.now() - t0) + " ms.)");
-            reportProgress("Team settings loaded.");
-            _daysOff = values[0];
-            _teamSettings = values[1];
-            _teamMemberCapacities = values[2];
-            _iteration = values[3];
-            _teamValues = values[4];
-            _dataService = values[5];
-            if (values.length > 6){
-                _backlogConfigurations = values[6];
-                _workItemTypes = _backlogConfigurations.taskBacklog.workItemTypes;
-            }else{
-                _workItemTypes = [{name: "Task"}];
+                if ( window._trackJs && typeof trackJs != "undefined"){
+
+                    trackJs.configure({version: extVersion});
+                                                                                                                                                                                                                                                trackJs.addMetadata("VssSDKRestVersion",VSS.VssSDKRestVersion);
+                    trackJs.addMetadata("VssSDKRestVersion",VSS.VssSDKRestVersion);
+ +                  trackJs.addMetadata("VssSDKVersion",VSS.VssSDKVersion);
+
+                }
+                
+                var context = VSS.getWebContext();
+                var workClient = TFS_Work.getClient();
+                var teamContext = { projectId: context.project.id, teamId: context.team.id, project: "", team: "" };
+
+                _witServices = TFS_Wit_Services;
+                _iterationId = VSS.getConfiguration().iterationId;
+                _projectId = context.project.id;
+                _witClient = VSS_Service.getCollectionClient(TFS_Wit_WebApi.WorkItemTrackingHttpClient);
+
+                var promisesList = [
+                    workClient.getTeamDaysOff(teamContext, _iterationId),
+                    workClient.getTeamSettings(teamContext),
+                    workClient.getCapacities(teamContext, _iterationId),
+                    workClient.getTeamIteration(teamContext, _iterationId),
+                    workClient.getTeamFieldValues(teamContext),
+                    VSS.getService(VSS.ServiceIds.ExtensionData)
+                ];
+
+                if (workClient.getBacklogConfigurations){
+                    promisesList.push(workClient.getBacklogConfigurations(teamContext));
+                }
+                
+                var serverAnswer = Promise.all(promisesList).then(function (values) {
+
+                    console.log("Team data loaded. (" + (performance.now() - t0) + " ms.)");
+                    reportProgress("Team settings loaded.");
+                    _daysOff = values[0];
+                    _teamSettings = values[1];
+                    _teamMemberCapacities = values[2];
+                    _iteration = values[3];
+                    _teamValues = values[4];
+                    _dataService = values[5];
+                    if (values.length > 6){
+                        _backlogConfigurations = values[6];
+                        _workItemTypes = _backlogConfigurations.taskBacklog.workItemTypes;
+                    }else{
+                        _workItemTypes = [{name: "Task"}];
+                    }
+                    queryAndRenderWit();
+                    loadThemes();
+                    
+
+                }, failToCallVss);
             }
-
-            queryAndRenderWit();
-            loadThemes();
-        }, failToCallVss);
-
-    } catch (e) {
-        console.log(e);
-        reportFailure("Browser is not supported.");
-    }
+            catch (e) {
+                console.log(e);
+                reportFailure("Browser is not supported.");
+            }
+        });
 }
 
 function queryAndRenderWit() {
@@ -110,7 +139,7 @@ function queryAndRenderWit() {
         query.query = query.query + " )";
     }
     // Executes the WIQL query against the active project
-    window.ExtensionData.Query(query).then(
+    _witClient.queryByWiql(query, _projectId).then(
         function (result) {
 
             console.log("Iteration data loaded. (" + (performance.now() - t0) + " ms.)");
@@ -130,8 +159,8 @@ function queryAndRenderWit() {
                 var end = 0;
                 var getWorkItemsPromises = [];
                 while (end < openWorkItems.length) {
-                    end = start + window.ExtensionData.Options.getWorkItems.MAX_WORK_ITEMS_AT_ONCE;
-                    getWorkItemsPromises.push(window.ExtensionData.getWorkItems(openWorkItems.slice(start, end), undefined, undefined, 1));
+                    end = start + 200;
+                    getWorkItemsPromises.push(_witClient.getWorkItems(openWorkItems.slice(start, end), undefined, undefined, 1));
                     start = end;
                 }
                 Promise.all(getWorkItemsPromises).then(processAllWorkItems, failToCallVss);
@@ -306,4 +335,3 @@ function failToCallVss(reason) {
 }
 
 BuildDropPlan();
-

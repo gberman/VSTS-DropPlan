@@ -52,9 +52,9 @@
                 "ms.vss-work-web.iteration-backlog-tabs"
             ],
             "properties": {
-                "name": "Drop plan test",
+                "name": "Drop Plan test",
                 "order": 99,
-                "uri": "index.html"
+                "uri": "{{URL}}"
             }
         },
         {
