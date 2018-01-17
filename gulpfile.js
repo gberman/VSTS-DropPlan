@@ -107,11 +107,11 @@ gulp.task('resource-css:prod', function(){
         .pipe(copy('./dist/prod/'));
 });
 gulp.task('resource-static:dev', function(){
-    return gulp.src(['images/*', 'README.md'])
+    return gulp.src(['images/*', 'README.md', 'LICENSE'])
         .pipe(copy('./dist/dev/'));
 });
 gulp.task('resource-static:prod', function(){
-    return gulp.src(['images/*', 'README.md'])
+    return gulp.src(['images/*', 'README.md', 'LICENSE'])
         .pipe(copy('./dist/prod/'));
 });
 
