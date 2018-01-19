@@ -10,7 +10,17 @@ let gulp       = require('gulp'),
     livereload = require('gulp-livereload'),
     replace    = require('gulp-replace'),
     copy       = require('gulp-copy'),
+    webserver  = require('gulp-webserver'),
+    fs         = require('fs'),
+    util       = require("gulp-util"),
     del        = require('del');
+
+let publisherId = 'yanivsegev'
+try{
+    publisherId = fs.readFileSync('publisherid', 'utf8');
+}catch(e){
+    util.log('If your publisher id from microsoft visual studio is not "' + publisherId + '", create a file at the root of the project with your publisher id inside');
+}
 
 let css = {
     sourceFiles: ['styles/main.css', 'styles/jquery-ui.css'],
@@ -115,10 +125,15 @@ exports.watch = function(done){
     livereload.listen();
     gulp.watch('scripts/*.js', Development.Scripts);
     gulp.watch('styles/*.css', function(){Development.Styles(); copyStaticFiles(Development.Env)();});
-
-    http.createServer(
-        st({ path: './dist/dev/', index: 'index.html', cache: false })
-    ).listen(8080, done);
+    
+    gulp.src('./dist/dev')
+    .pipe(webserver({
+      livereload: false,
+      directoryListing: false,
+      open: false,
+      https: true,
+      port: 8080
+    }));
 }
 exports.default = gulp.series(
         clean, 
@@ -131,13 +146,15 @@ exports.default = gulp.series(
                 {Key: '#{now}', Value: new Date().toJSON()},
                 {Key: '#{testing-flag}', Value: '-test'},
                 //{Key: '"public": false', Value: '"public": false'},
-                {Key: '"uri": "index.html"', Value: '"uri": "localhost:8080"'},
+                {Key: '"yanivsegev"', Value: '"' + publisherId + '"'},
+                {Key: '"uri": "index.html"', Value: '"uri": "https://localhost:8080"'},
                 {Key: '#{isMinified}', Value: ''}
             ]),
             copyDynamicFiles(Production.Env, [
                 {Key: '#{now}', Value: new Date().toJSON()},
                 {Key: '#{testing-flag}', Value: ''},
                 {Key: '"public": false', Value: '"public": true'},
+                //{Key: '"yanivsegev"', Value: '"yanivsegev"'},
                 //{Key: '"uri": "index.html"', Value: '"uri": "index.html"'},
                 {Key: '#{isMinified}', Value: '.min'}
             ])),
